@@ -1,10 +1,12 @@
 # Public source publication
 
+Published source: [AERODARIUS/anotter-demo](https://github.com/AERODARIUS/anotter-demo), public, default branch `main`. This project root is linked as `origin`.
+
 The project folder itself is the repository to publish. Source, theme, plugin, scripts, tests, documentation and original assets belong in Git. Private environments, credentials, backups, downloaded dependencies, Docker data, logs and browser evidence stay local through `.gitignore`. This is an independent fictional DEMO; M06 genuine provider acceptance and M07 recording remain pending.
 
 ## What changed in Git
 
-The previous local history included personal commit emails and older documentation with account identifiers and a home path. `.gitignore` cannot remove content already in commits. The prior standalone Git metadata was copied to a verified private backup outside the project and OneDrive. Native Git operations gave this same project folder a new `main` with one anonymous initial commit. The `.git` directory stays in place because Windows blocks its rename. Working source, ignored files, private environments and Docker volumes were preserved. No GitHub repository or push was performed.
+The previous local history included personal commit emails and older documentation with account identifiers and a home path. `.gitignore` cannot remove content already in commits. The prior standalone Git metadata was copied to a verified private backup outside the project and OneDrive. Native Git operations gave this same project folder a new `main` with one anonymous initial commit. The `.git` directory stays in place because Windows blocks its rename. Working source, ignored files, private environments and Docker volumes were preserved. The initial cleanup performed no remote operation; subsequent publication is recorded in [verification.md](verification.md).
 
 The initial author/committer is `Demo Maintainer <maintainer@example.invalid>`, a reserved synthetic identity. Local Git identity and `.githooks` are configured here. The old history is not kept in a public branch/tag or tracked backup. Local editor checkpoints, reflogs and unreachable recovery objects can still contain private prior versions; Git does not send them in a normal `git push origin main`. Do not upload `.git` as an archive, push recovery refs, or use `--mirror`. Local recovery details are stored in ignored `work/git-publication-state.json`; keep that file and the external backup private. Recovering the old history would reintroduce the information excluded from public history.
 
@@ -18,16 +20,16 @@ git log --oneline main
 python scripts/check-secrets.py --staged --history
 ```
 
-Expected: clean status, one public initial commit and a passing scan. Ordinary development changes can then be staged/committed normally. `.env.example` has blank secret fields; reserved synthetic emails and negative-validation fixtures are intentional. Original artwork and font license notices are retained. Real emails, payment account/application numbers, tokens, passwords, private keys, active tunnel hosts and order keys do not belong in source, filenames, messages or Git identities.
+Expected: clean status and a passing scan. Public history starts at an anonymous initial commit; later reviewed source/documentation commits follow it. Ordinary development changes can then be staged/committed normally. `.env.example` has blank secret fields; reserved synthetic emails and negative-validation fixtures are intentional. Original artwork and font license notices are retained. Real emails, payment account/application numbers, tokens, passwords, private keys, active tunnel hosts and order keys do not belong in source, filenames, messages or Git identities.
 
-Create an **empty** public GitHub repository without an initial README/license commit. Replace `OWNER/REPOSITORY` below and run from this same project root:
+The public repository has been created and this workspace already has its `origin`. After reviewing and committing subsequent changes, run from the project root:
 
 ```powershell
-git remote add origin https://github.com/OWNER/REPOSITORY.git
 python scripts/check-secrets.py --staged --history
-# Continue only after a passing scan and review:
-git push -u origin main
+git push origin main
 ```
+
+A fresh clone sets `origin` automatically. When using this project as a starting point for a different repository, create an empty repository in the intended account and configure its remote separately.
 
 Authenticate through the Git credential manager; never embed tokens in a remote URL. Push `main` normally. Do not restore the old Git metadata into this public history or push a backup with `--mirror`. This preparation does not grant a new project license; third-party font notices remain unchanged.
 

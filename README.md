@@ -4,6 +4,8 @@ Independent commercial prototype, **not the official AnOtter Game website**. All
 
 ## Public repository preparation
 
+Public source: [AERODARIUS/anotter-demo](https://github.com/AERODARIUS/anotter-demo). The project root is linked to this repository as `origin`; the reviewed `main` has been published.
+
 This project folder is the repository to publish. `.gitignore` excludes private environments, keys, backups, dependencies, runtime data and browser evidence. Its public `main` starts with a new anonymous commit. Prior Git metadata is backed up privately outside the checkout and OneDrive; local recovery refs/objects are excluded from publication. See the [publication guide](docs/publishing.md).
 
 Run `python scripts/check-secrets.py --staged --history` before pushing. Local pre-commit and pre-push guards are enabled here; fresh clones must enable `.githooks` themselves. `python scripts/prepare-public.py` remains an optional export tool; a second checkout is not needed for the normal publication workflow. No GitHub repository or push is created automatically.

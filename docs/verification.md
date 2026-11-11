@@ -197,3 +197,14 @@ The project root is now the repository to publish, as requested; a separate expo
 - **NOT RUN** — GitHub creation/push and application/Docker/browser regressions. Only publication tooling/documentation and local Git metadata changed. M06 provider acceptance and M07 remain pending.
 
 Earlier instructions requiring publication from `work/public-repository/` are superseded. Use this project root and the [current publication guide](publishing.md).
+
+
+## GitHub public publication — 2026-11-11
+
+- **PASS** — After user-completed `gh auth login`, `gh api user --jq .login` confirmed the intended account. Local source/index/public-history scans against the private main environment passed: 141 versionable files and a clean anonymous initial `main`.
+- **PASS** — `gh repo create AERODARIUS/anotter-demo --public --source . --remote origin --description <demo-description>` created a new public repository. An authenticated preflight lookup returned 404, so no existing repository was adopted.
+- **PASS** — `git -c remote.origin.mirror=false -c push.followTags=false push --set-upstream origin refs/heads/main:refs/heads/main` uploaded only the reviewed `main`; the pre-push secret check passed. Recovery/editor refs, reflogs, ignored data and private backups were not published.
+- **PASS** — Authenticated GitHub repository/commit API reads confirmed public visibility, default branch `main`, exact matching local/remote initial commit and tree, and zero parents for the initial public commit. `git ls-remote --refs origin` showed only `refs/heads/main`.
+- **PASS** — README/publication guide/roadmap now link to [the public repository](https://github.com/AERODARIUS/anotter-demo). This documentation record follows the anonymous initial source commit. No real email, credential, provider identifier or private payload was added to the publication record.
+- **RESOLVED ENVIRONMENT BLOCKER** — The sandbox could not reach `api.github.com`; authorized GitHub CLI/Git operations outside that sandbox completed successfully. Authentication values were neither displayed nor written to project files.
+- **NOT RUN** — New application, Docker or browser regression suites for this publication-only step. The prior 20 host tests remain the executed tooling evidence; source application behavior and M06/M07 acceptance are unchanged.

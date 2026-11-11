@@ -1,5 +1,7 @@
 # Roadmap
 
+Source published on 2026-11-11: [AERODARIUS/anotter-demo](https://github.com/AERODARIUS/anotter-demo). Public GitHub source is available; M06 payment acceptance and M07 recording remain pending.
+
 Public source preparation (2026-11-11) sanitizes documentation and adds offline source/index/history checks. The project root is the publication repository, with a new anonymous initial `main` history and a private backup of old Git metadata outside OneDrive. Local recovery/editor refs are not public branches. Checked snapshot export remains optional. It does not change milestone acceptance: M06 provider evidence and M07 recording remain pending. See [publishing.md](publishing.md).
 
 Latest checkpoint: **2026-11-10**. M06 local and public infrastructure is running. Provider acceptance and M07 readiness remain BLOCKED. See the [acceptance report](payment-acceptance-report.md) and [M07 readiness](m07-readiness.md).
