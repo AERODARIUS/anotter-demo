@@ -1,0 +1,3 @@
+#!/bin/sh
+# Commits and tags can disclose private identities even when current files pass.
+exec python scripts/check-secrets.py --staged --history

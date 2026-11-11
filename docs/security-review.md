@@ -1,0 +1,52 @@
+# M05 practical security review — 2026-10-29
+
+This is a scoped code/configuration and live-demo review, not a penetration-test certificate or production-readiness claim. Initial baseline: WP 7.1.3, WC 11.2.1, PHP 8.3.36, MySQL 8.4.13, MP 8.9.7. WordPress 7.1.4 was identified as a security patch during current upstream review and staged/tested in isolated QA before the main update. See `testing-m05.md` for final installed versions and executed results.
+
+## Findings and remediation
+
+| ID | Severity | Reproduction / finding | Remediation / status |
+| --- | --- | --- | --- |
+| SEC-01 | P1 | Installed WP 7.1.3 predates the newly published 7.1.4 security fixes, including stored XSS/Interactivity API issues | Reviewed official release, private DB/core backup, explicit 7.1.4 patch and matching official image; QA and final regression required. No WC/MP version changes |
+| SEC-02 | P1 potential data safety | M03 cleanup originally inferred order ownership from fixture product membership alone; several fixture entry points lacked actual-environment checks | Require a matching isolated test identity or explicit order marker plus exclusively owned product IDs; preflight product/coupon ownership. Shared PHP guard refuses nonmanaged, nonloopback and production/staging environments. M04 public negative fixtures remain allowed only in managed local/development |
+| SEC-03 | P2 | Contact server correctly rejects an overlong subject, but reflected the entire 20,000-character value into invalid markup | Bound input before sanitization/reflection while validating original raw input. Real integration assertion failed before and passed after the change; Unicode exact/over-limit/array/empty cases included |
+| SEC-04 | P2 | Apache's default request line and Referer can retain order-key/OAuth query parameters | Redefined combined/vhost formats to retain method/path/protocol/status/size without query/Referer. Existing private logs/backups must still be treated as sensitive. Provider/PHP verbose logs can contain private payloads; leave MP verbose logging off |
+| SEC-05 | P2 | Browser failure reports could serialize complete URLs including native access keys | Store pathname only in M02/M03 failure metadata. M05 never stores order-return URLs; private fixtures capture them in memory only |
+| SEC-06 | P2 acceptance risk | MP 8.9.7 declares WC tested through 11.0.1, below 11.2.1 | Local registration/negative paths checked; genuine account-dependent compatibility remains M06. Preserve verified pins; test a vendor-supported alternative in a separate environment only if a real failure justifies it |
+| SEC-07 | P1 | Global local mail capture can include WordPress account-recovery messages; granting a Shop Manager preview access could expose an administrator reset link | Preview/menu/clear now require administrator settings capability in addition to store management. A real isolated Shop Manager is denied; configured administrator retains access. No recovery credential was generated or printed to demonstrate this risk |
+
+## Checklist and boundaries
+
+| Area | Review / evidence |
+| --- | --- |
+| Secrets in source | `scripts/check-secrets.py` scans versionable tracked/untracked files, current private secret values and common MP token shapes; only `.env.example` is tracked. Targeted detection does not prove universal absence. No private values were printed |
+| Runtime artifacts | Runtime JSON/log scan found no current local administrator/DB/authentication secrets and no historical `key=wc_order_` URLs in the scanned files. Backups and environment files are intentionally private and excluded. Screenshots show synthetic storefront data; do not publish authenticated settings or raw logs |
+| Privileged actions | Mail preview/clear require both `manage_woocommerce` and `manage_options`; clear also checks native nonce. Real isolated Shop Manager denied; administrator allowed. No setup/reset HTTP endpoint exists. CLI-only guards precede mutation. Guest/Customer capabilities and anonymous private commerce REST access are tested |
+| Contact CSRF/XSS/input | Native nonce, bounded scalar input and email validation, escaping, honeypot and salted connection-address rate counter. Integration covers rejected array/empty/Unicode boundaries, hostile HTML, expired nonce, rate limit and accessible errors. Form neither stores nor sends content |
+| SQL and redirects | Custom stock extension changes only a fixed native reservation-read predicate, with no user-supplied SQL. Commerce writes use Woo CRUD. Public origin is exact HTTPS Quick Tunnel, with ignored forwarded headers/unknown Host rejection; URL changes do not rewrite DB content |
+| Uploads | Native WordPress MIME restrictions remain; Customer cannot upload, PHP type not allowed. No custom upload/public filesystem operation or SVG exception added. This is not a full malicious-file scanner |
+| Customer/order isolation | Native guest order keys and Woo order permissions remain authoritative; M03 tests missing/wrong keys, administration and stock. M04 forged approval leaves the real owned fixture unpaid. Never share order keys |
+| Stock/totals/coupons | Real WC services test overstock/invalid input/coupon boundaries, atomic last-unit checkout and native status/refund/cancellation lifecycle. No mock prices, orders, stock or successful payment responses |
+| Mail/privacy | All mail stays suppressed; only reserved `.invalid` recipients captured locally with 10-message/100,000-character limits. Integration verifies unreserved recipients aren't captured. Preview is capability-protected and HTML is sandboxed; no delivery claim |
+| Payment credentials | Official private plugin options only; MP public key, if emitted by the official UI, is distinct from a server access token. No custom gateway, preference builder, webhook or token store. No credentials were available and no actual payment was executed |
+| Card metadata | Official notification code can store limited card-method data including last-four. No custom PAN/CVV collection. Retention/privacy constraints and actual stored metadata require M06 review; do not assert zero card metadata or PCI/legal certification |
+| Docker | DB has no published ports; Apache binds 127.0.0.1 only; named volumes/private network. Host source read-only. CLI runs UID 33; no privileged container, Docker socket mount or public admin service. Apache image's parent process uses its normal root startup, workers use www-data; no unsupported blanket read-only filesystem or capability removal applied |
+| Debug/tunnel | Debug display false; local errors go to stderr. Dotfiles/log/SQL/backup/diagnostic paths denied. Tunnel exposes native admin by design: strong generated unique password, no real data, stop after use. Noindex is not authentication. Callbacks/Store API remain available |
+| Reset | Default dry run, explicit project confirmation, managed local/development + loopback + no tunnel; strict session/email/payment/product ownership. Unknown active orders block stock reset. Paid/provider/refunded orders refused. Native cancellation/CRUD only; verified separately in isolated QA |
+
+## Dependency review and limits
+
+Current primary sources were checked on 2026-10-29: [WordPress 7.1.4 security release](https://wordpress.org/news/2026/10/wordpress-7-1-4/), [PHP 8.3.36 security release](https://www.php.net/releases/8_3_36.php), [WooCommerce 11.2.1 release notes](https://developer.woocommerce.com/2026/10/09/woocommerce-11-2-1-release-notes/), [official Mercado Pago plugin](https://wordpress.org/plugins/woocommerce-mercadopago/), [vendor changelog](https://github.com/mercadopago/cart-woocommerce/blob/main/changelog.log) and [WooCommerce public advisories](https://github.com/woocommerce/woocommerce/security/advisories). WP 7.1.4 contains newly disclosed security fixes; installed PHP 8.3.36 is already the cited security release. These checks justify a deliberate core patch, not a blanket upgrade of all dependencies.
+
+Official WP core checksums and WC/MP/Akismet plugin checksums verified before patch; repeat core verification is part of patch acceptance. Core verification reports the known official-image `wp-config-docker.php` and mounted `wp-cli.yml` as extra files; these aren't altered core hashes. Native plugin inventory includes inactive Akismet 5.7.2 and Hello 1.7.2, and inactive bundled themes; these were preserved. The custom plugin/theme have project-source review, not WordPress.org checksums.
+
+`npm audit` after installing locked development-only axe/Lighthouse/Puppeteer tooling reported zero advisories. This covers the resolved Node dependency graph at that time, not PHP, MySQL or OS packages. Docker Scout is unavailable (`docker: 'scout' is not a docker command`); no image-wide CVE scan was completed. No authenticated WordPress vulnerability feed was supplied, so source/release/integrity review is not an exhaustive plugin CVE assessment. Recheck current vendor advisories before every public exposure. Image tags are not immutable digests. The pulled 7.1.4 image reported digest `sha256:12ec50e21cb81a5ea964669d434578b7da4a101a45aef83f5f1c2227bcd1b058` on this host; do not assume it covers another architecture/tag rebuild.
+
+## Remaining risks
+
+- **P2:** temporary admin/login exposure without a dedicated application rate limiter; use short supervised tunnel sessions, strong generated credentials and no real data. Adding public blocking/auth middleware indiscriminately would break provider callbacks.
+- **P2:** behind cloudflared the contact rate limit sees a connection address rather than a verified buyer address; users may share its limit. Never trust arbitrary forwarded IP headers to bypass the boundary. The contact channel remains validation-only.
+- **P2:** image-wide CVE and exhaustive authenticated PHP/plugin feed coverage unavailable; revisit tooling before production consideration.
+- **M06 BLOCKED:** real test-account identity, provider preferences/amount correlation, actual notification authorization/status/idempotency and account-dependent compatibility. Invalid notifications and source review do not prove these properties.
+- Private backups contain customer/configuration data even in a demo. Keep them out of export packages; a full restore drill remains NOT RUN against the working environment.
+
+Final unresolved P0/P1 status and executable results are recorded in `testing-m05.md`; never infer completion from this checklist alone.

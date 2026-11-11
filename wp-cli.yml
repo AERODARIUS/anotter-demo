@@ -1,0 +1,4 @@
+# WP-CLI runs in PHP CLI, so declare Apache's enabled rewrite module explicitly.
+path: /var/www/html
+apache_modules:
+  - mod_rewrite

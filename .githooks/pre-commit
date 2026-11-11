@@ -1,0 +1,3 @@
+#!/bin/sh
+# Validate the exact index, including files forcibly added despite .gitignore.
+exec python scripts/check-secrets.py --staged

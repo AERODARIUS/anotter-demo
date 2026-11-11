@@ -1,0 +1,101 @@
+x-wordpress-environment: &wordpress-environment
+  WORDPRESS_DB_HOST: db:3306
+  WORDPRESS_DB_NAME: ${DB_NAME:-anotter}
+  WORDPRESS_DB_USER: ${DB_USER:-anotter}
+  WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:?Run python scripts/dev.py init-env}
+  WORDPRESS_AUTH_KEY: ${WORDPRESS_AUTH_KEY:?Run python scripts/dev.py init-env}
+  WORDPRESS_SECURE_AUTH_KEY: ${WORDPRESS_SECURE_AUTH_KEY:?Run python scripts/dev.py init-env}
+  WORDPRESS_LOGGED_IN_KEY: ${WORDPRESS_LOGGED_IN_KEY:?Run python scripts/dev.py init-env}
+  WORDPRESS_NONCE_KEY: ${WORDPRESS_NONCE_KEY:?Run python scripts/dev.py init-env}
+  WORDPRESS_AUTH_SALT: ${WORDPRESS_AUTH_SALT:?Run python scripts/dev.py init-env}
+  WORDPRESS_SECURE_AUTH_SALT: ${WORDPRESS_SECURE_AUTH_SALT:?Run python scripts/dev.py init-env}
+  WORDPRESS_LOGGED_IN_SALT: ${WORDPRESS_LOGGED_IN_SALT:?Run python scripts/dev.py init-env}
+  WORDPRESS_NONCE_SALT: ${WORDPRESS_NONCE_SALT:?Run python scripts/dev.py init-env}
+  APP_ENV: ${APP_ENV:-local}
+  ANOTTER_LOCAL_URL: ${SITE_URL:-http://localhost:8080}
+  ANOTTER_PUBLIC_URL: ${PUBLIC_SITE_URL:-}
+
+services:
+  db:
+    image: ${MYSQL_IMAGE:-mysql:8.4.13}
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-anotter}
+      MYSQL_USER: ${DB_USER:-anotter}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Run python scripts/dev.py init-env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Run python scripts/dev.py init-env}
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --protocol=TCP -h 127.0.0.1 -u "$${MYSQL_USER}" "$${MYSQL_DATABASE}" -e "SELECT 1" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+    # Intentionally no published database port.
+
+  wordpress:
+    image: ${WORDPRESS_IMAGE:-wordpress:7.1.4-php8.3-apache}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
+    environment: *wordpress-environment
+    volumes:
+      - wordpress:/var/www/html
+      - ./theme/anotter-demo:/var/www/html/wp-content/themes/anotter-demo:ro
+      - ./plugins/anotter-demo-foundation:/var/www/html/wp-content/plugins/anotter-demo-foundation:ro
+      - ./docker/wp-config.php:/var/www/html/wp-config.php:ro
+      - ./docker/php.ini:/usr/local/etc/php/conf.d/anotter.ini:ro
+      - ./docker/public-origin.php:/opt/anotter/public-origin.php:ro
+      - ./docker/payment-security.conf:/etc/apache2/conf-enabled/anotter-payment-security.conf:ro
+    healthcheck:
+      test: [CMD, php, -r, "exit(@file_get_contents('http://127.0.0.1/wp-includes/version.php') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  wpcli:
+    image: ${WPCLI_IMAGE:-wordpress:cli-2.12.0-php8.3}
+    profiles: [tools]
+    # Apache's Debian www-data is UID 33; Alpine's default is UID 82.
+    user: "33:33"
+    working_dir: /var/www/html
+    entrypoint: [wp]
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
+    environment:
+      <<: *wordpress-environment
+      HOME: /tmp
+      WP_CLI_CACHE_DIR: /tmp/wp-cli-cache
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
+      WP_ADMIN_USER: ${WP_ADMIN_USER:-demo_manager}
+      WP_ADMIN_PASSWORD: ${WP_ADMIN_PASSWORD:?Run python scripts/dev.py init-env}
+      WP_ADMIN_EMAIL: ${WP_ADMIN_EMAIL:-demo@example.invalid}
+      WP_LOCALE: ${WP_LOCALE:-es_UY}
+      WP_FALLBACK_LOCALE: ${WP_FALLBACK_LOCALE:-es_ES}
+      WOOCOMMERCE_VERSION: ${WOOCOMMERCE_VERSION:-11.2.1}
+      MERCADOPAGO_VERSION: ${MERCADOPAGO_VERSION:-8.9.7}
+      ANOTTER_DEMO_PROJECT: ${COMPOSE_PROJECT_NAME:?Run init-env}
+      DEMO_FLAT_RATE_COST: ${DEMO_FLAT_RATE_COST:-220}
+      DEMO_ENABLE_COD: ${DEMO_ENABLE_COD:-no}
+    volumes:
+      - wordpress:/var/www/html
+      - ./theme/anotter-demo:/var/www/html/wp-content/themes/anotter-demo:ro
+      - ./plugins/anotter-demo-foundation:/var/www/html/wp-content/plugins/anotter-demo-foundation:ro
+      - ./docker/wp-config.php:/var/www/html/wp-config.php:ro
+      - ./docker/php.ini:/usr/local/etc/php/conf.d/anotter.ini:ro
+      - ./docker/public-origin.php:/opt/anotter/public-origin.php:ro
+      - ./scripts:/opt/anotter/scripts:ro
+      - ./tests:/opt/anotter/tests:ro
+      - ./wp-cli.yml:/var/www/html/wp-cli.yml:ro
+
+volumes:
+  database:
+  wordpress:
